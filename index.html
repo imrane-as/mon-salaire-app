@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mon Salaire" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Mon Salaire</title>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Gestion personnelle</p>
+      <h1>Mon Salaire</h1>
+    </div>
+    <button id="exportBtn" class="export-top">Exporter PDF</button>
+  </header>
+
+  <main>
+    <section class="card hero">
+      <div>
+        <p>Reste disponible</p>
+        <h2 id="remaining">0,00 €</h2>
+      </div>
+      <div class="hero-grid">
+        <div><span>Salaire net</span><strong id="salaryValue">0,00 €</strong></div>
+        <div><span>Dépenses</span><strong id="expensesValue">0,00 €</strong></div>
+        <div><span>Épargne</span><strong id="savingsValue">0,00 €</strong></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Ce mois-ci</h3>
+      <div class="form-grid">
+        <label>Mois
+          <input id="month" type="month" />
+        </label>
+        <label>Salaire net reçu
+          <input id="salary" type="number" inputmode="decimal" placeholder="3200" />
+        </label>
+        <label>Prime / avantage
+          <input id="bonus" type="number" inputmode="decimal" placeholder="0" />
+        </label>
+        <label>Objectif d’épargne
+          <input id="savingGoal" type="number" inputmode="decimal" placeholder="1000" />
+        </label>
+      </div>
+      <button id="saveMonth" class="primary">Enregistrer le mois</button>
+      <button id="pdfBtn" class="pdf-button"><span>PDF</span> Générer le rapport Imrane Asrir</button>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h3>Dépenses</h3>
+        <span id="expenseCount">0 dépense</span>
+      </div>
+      <div class="form-grid">
+        <label>Nom
+          <input id="expenseName" type="text" placeholder="Loyer" />
+        </label>
+        <label>Catégorie
+          <select id="expenseCategory">
+            <option>Loyer</option>
+            <option>Voiture</option>
+            <option>Alimentation</option>
+            <option>Abonnements</option>
+            <option>Famille</option>
+            <option>Voyages</option>
+            <option>Autre</option>
+          </select>
+        </label>
+        <label>Montant
+          <input id="expenseAmount" type="number" inputmode="decimal" placeholder="690" />
+        </label>
+      </div>
+      <button id="addExpense" class="secondary">Ajouter la dépense</button>
+      <div id="expenseList" class="list"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h3>Historique</h3>
+        <button id="resetBtn" class="danger ghost">Réinitialiser</button>
+      </div>
+      <div id="history" class="history"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="#top">Accueil</a>
+    <a href="#history">Historique</a>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
