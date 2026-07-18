@@ -53,7 +53,15 @@ function totals(d){
 
 function render(){
   const d=monthData(),t=totals(d),rate=t.income?Math.round(t.saving/t.income*100):0;
-  const score=Math.max(0,Math.min(100,Math.round(45+rate*.7-(t.remaining<0?35:0))));
+  const score = t.income > 0
+    ? Math.max(
+        0,
+        Math.min(
+          100,
+          Math.round(45 + rate * 0.7 - (t.remaining < 0 ? 35 : 0))
+        )
+      )
+    : 0;
   $("remaining").textContent=money(t.remaining);
   $("incomeValue").textContent=money(t.income);
   $("expensesValue").textContent=money(t.expenses);
