@@ -21,6 +21,79 @@
 </head>
 
 <body>
+<section id="splashScreen" class="splash-screen">
+  <div class="splash-background">
+    <div class="splash-orb splash-orb-one"></div>
+    <div class="splash-orb splash-orb-two"></div>
+    <div class="splash-grid"></div>
+  </div>
+
+  <div class="splash-content">
+    <div class="splash-logo-wrapper">
+      <div class="splash-logo">
+        <span class="logo-its">ITS</span>
+        <span class="logo-four">4</span>
+        <span class="logo-you">U</span>
+      </div>
+
+      <div class="logo-glow"></div>
+    </div>
+
+    <p class="splash-label">DEVOPS · AUTOMATION · COOLIFY</p>
+
+    <h1 class="splash-title">
+      Déploiement automatisé
+      <span>avec Coolify</span>
+    </h1>
+
+    <p class="splash-description">
+      Cette application est un exemple de déploiement automatique
+      depuis GitHub vers Cyclop avec Coolify.
+    </p>
+
+    <div class="deployment-flow">
+      <div class="flow-item">
+        <span class="flow-icon">01</span>
+        <strong>GitHub</strong>
+      </div>
+
+      <div class="flow-line">
+        <span></span>
+      </div>
+
+      <div class="flow-item">
+        <span class="flow-icon">02</span>
+        <strong>Coolify</strong>
+      </div>
+
+      <div class="flow-line">
+        <span></span>
+      </div>
+
+      <div class="flow-item">
+        <span class="flow-icon">03</span>
+        <strong>Cyclop</strong>
+      </div>
+    </div>
+
+    <div class="splash-progress">
+      <div id="splashProgressBar" class="splash-progress-bar"></div>
+    </div>
+
+    <p id="splashStatus" class="splash-status">
+      Initialisation de l’application…
+    </p>
+
+    <button type="button" id="skipSplash" class="skip-splash">
+      Accéder à l’application
+    </button>
+
+    <p class="splash-disclaimer">
+      Démonstration technique indépendante — aucune affiliation officielle
+      avec ITS4U n’est revendiquée.
+    </p>
+  </div>
+</section>
   <div class="app">
     <aside>
       <div class="brand">
@@ -493,13 +566,13 @@
     </form>
   </dialog>
 
-  <script src="/app.js?v=4" defer></script>
+  <script src="/app.js?v=5" defer></script>
 
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", async () => {
         try {
-          await navigator.serviceWorker.register("/sw.js?v=4", {
+          await navigator.serviceWorker.register("/sw.js?v=5", {
             scope: "/"
           });
         } catch (error) {
@@ -509,4 +582,5 @@
     }
   </script>
 </body>
+
 </html>

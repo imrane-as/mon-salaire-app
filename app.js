@@ -143,4 +143,86 @@ function generatePDF(){
   const html=`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Rapport Imrane Finance</title><style>@page{size:A4;margin:0}body{margin:0;font-family:Arial;color:#14213d}.cover{padding:55px;color:white;background:linear-gradient(135deg,#07111f,#312e81)}.logo{font-size:30px;font-weight:900}.content{padding:40px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:-55px}.card{background:white;padding:22px;border-radius:18px;box-shadow:0 10px 35px #0002}.card span{color:#64748b;font-size:12px}.card b{display:block;font-size:21px;margin-top:8px}table{width:100%;border-collapse:collapse;margin-top:25px}th,td{text-align:left;padding:12px;border-bottom:1px solid #e5e7eb}th{background:#f4f6fb}.footer{margin-top:30px;color:#64748b;font-size:11px}</style></head><body><div class="cover"><div class="logo">IF · Imrane Finance</div><h1>Rapport financier mensuel</h1><p>${$("month").options[$("month").selectedIndex].text}</p></div><div class="content"><div class="cards"><div class="card"><span>Revenus</span><b>${money(t.income)}</b></div><div class="card"><span>Dépenses</span><b>${money(t.expenses)}</b></div><div class="card"><span>Solde</span><b>${money(t.remaining)}</b></div></div><h2>Détail des transactions</h2><table><thead><tr><th>Description</th><th>Catégorie</th><th>Date</th><th>Montant</th></tr></thead><tbody>${rows}</tbody></table><div class="footer">Document privé généré par Imrane Finance · ${new Date().toLocaleString("fr-FR")}</div></div><script>onload=()=>setTimeout(()=>print(),300)</script></body></html>`;
   const w=open("","_blank");if(!w)return alert("Autorise les fenêtres surgissantes.");w.document.write(html);w.document.close();
 }
-setup();
+function setupSplashScreen() {
+  const splashScreen = document.getElementById("splashScreen");
+  const skipButton = document.getElementById("skipSplash");
+  const progressBar = document.getElementById("splashProgressBar");
+  const status = document.getElementById("splashStatus");
+
+  if (!splashScreen || !progressBar || !status) {
+    return;
+  }
+
+  document.body.classList.add("splash-active");
+
+  const steps = [
+    {
+      progress: 18,
+      message: "Connexion au dépôt GitHub…"
+    },
+    {
+      progress: 42,
+      message: "Analyse du Dockerfile…"
+    },
+    {
+      progress: 68,
+      message: "Déploiement de l’image avec Coolify…"
+    },
+    {
+      progress: 88,
+      message: "Vérification du conteneur Cyclop…"
+    },
+    {
+      progress: 100,
+      message: "Application prête."
+    }
+  ];
+
+  let currentStep = 0;
+  let closed = false;
+
+  function closeSplash() {
+    if (closed) {
+      return;
+    }
+
+    closed = true;
+    progressBar.style.width = "100%";
+    status.textContent = "Application prête.";
+
+    setTimeout(() => {
+      splashScreen.classList.add("is-closing");
+      document.body.classList.remove("splash-active");
+
+      setTimeout(() => {
+        splashScreen.remove();
+      }, 850);
+    }, 300);
+  }
+
+  function runStep() {
+    if (closed) {
+      return;
+    }
+
+    const step = steps[currentStep];
+
+    progressBar.style.width = `${step.progress}%`;
+    status.textContent = step.message;
+
+    currentStep += 1;
+
+    if (currentStep < steps.length) {
+      setTimeout(runStep, 650);
+    } else {
+      setTimeout(closeSplash, 650);
+    }
+  }
+
+  skipButton?.addEventListener("click", closeSplash);
+
+  setTimeout(runStep, 400);
+document.addEventListener("DOMContentLoaded", () => {
+  setup();
+  setupSplashScreen();
+});
