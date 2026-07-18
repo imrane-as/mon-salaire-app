@@ -190,22 +190,17 @@ function setupSplashScreen() {
   let closed = false;
 
   function closeSplash() {
-    if (closed) {
-      return;
-    }
 
-    closed = true;
-    progressBar.style.width = "100%";
-    status.textContent = "Application prête.";
-
-    setTimeout(() => {
       splashScreen.classList.add("is-closing");
+
       document.body.classList.remove("splash-active");
 
       setTimeout(() => {
-        splashScreen.remove();
-      }, 850);
-    }, 300);
+
+          splashScreen.remove();
+
+      }, 800);
+
   }
 
   function runStep() {
@@ -221,9 +216,10 @@ function setupSplashScreen() {
     currentStep += 1;
 
     if (currentStep < steps.length) {
-      setTimeout(runStep, 650);
+        setTimeout(runStep, 650);
     } else {
-      setTimeout(closeSplash, 650);
+        progressBar.style.width = "100%";
+        status.textContent = "Application prête. Cliquez sur « Accéder à l'application ».";
     }
   }
 
