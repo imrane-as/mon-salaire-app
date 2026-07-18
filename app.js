@@ -1,242 +1,146 @@
+const KEY="imraneFinanceV3";
+const THEMES=["midnight","light","aurora"];
+const CATS=["Loyer","Voiture","Alimentation","Abonnements","Famille","Voyages","Santé","Loisirs","Autre"];
+const icons={Loyer:"⌂",Voiture:"◇",Alimentation:"◉",Abonnements:"↻",Famille:"♡",Voyages:"✈",Santé:"+",Loisirs:"☆",Autre:"•"};
+let state=JSON.parse(localStorage.getItem(KEY)||'{"months":{},"goals":[],"theme":"midnight"}');
+const $=id=>document.getElementById(id),num=v=>Number(v)||0;
+const money=v=>new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(num(v));
+const now=new Date(),current=now.toISOString().slice(0,7);
 
-const KEY = "monSalaireDataV1";
-const state = JSON.parse(localStorage.getItem(KEY) || '{"months":{}}');
+function monthData(k=$("month").value){return state.months[k]||(state.months[k]={salary:0,bonus:0,savingGoal:0,budget:0,expenses:[],categoryBudgets:{}})}
+function persist(){localStorage.setItem(KEY,JSON.stringify(state));render()}
+function esc(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function labelMonth(k){return new Date(k+"-01T12:00:00").toLocaleDateString("fr-FR",{month:"short",year:"2-digit"})}
 
-const $ = id => document.getElementById(id);
-const money = n => new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(Number(n)||0);
-const currentMonth = new Date().toISOString().slice(0,7);
-$("month").value = currentMonth;
+function setup(){
+  for(let i=0;i<18;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1),k=d.toISOString().slice(0,7);
+    $("month").add(new Option(d.toLocaleDateString("fr-FR",{month:"long",year:"numeric"}),k));
+  }
+  $("month").value=current;
+  $("expenseDate").value=now.toISOString().slice(0,10);
+  CATS.forEach(c=>{$("expenseCategory").add(new Option(c,c));$("filter").add(new Option(c,c))});
+  document.documentElement.dataset.theme=state.theme||"midnight";
 
-function getMonthData(){
-  const month = $("month").value || currentMonth;
-  if(!state.months[month]) state.months[month] = {salary:0,bonus:0,savingGoal:0,expenses:[]};
-  return state.months[month];
-}
-function save(){
-  localStorage.setItem(KEY, JSON.stringify(state));
+  document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>showView(b.dataset.view));
+  document.querySelectorAll("[data-view-link]").forEach(b=>b.onclick=()=>showView(b.dataset.viewLink));
+
+  $("openExpense").onclick=$("openExpense2").onclick=()=>$("expenseModal").showModal();
+  $("openIncome").onclick=()=>{loadIncome();$("incomeModal").showModal()};
+  $("themeBtn").onclick=()=>{state.theme=THEMES[(THEMES.indexOf(state.theme)+1)%THEMES.length];document.documentElement.dataset.theme=state.theme;persist()};
+  $("month").onchange=render;
+  $("search").oninput=renderTransactions;
+  $("filter").onchange=renderTransactions;
+  $("saveMonth").onclick=saveIncome;
+  $("addExpense").onclick=saveExpense;
+  $("saveGoal").onclick=addGoal;
+  $("exportBtn").onclick=$("pdfBtn").onclick=generatePDF;
+  $("backupBtn").onclick=backup;
+  $("resetBtn").onclick=()=>{if(confirm("Supprimer toutes les données ?")){localStorage.removeItem(KEY);location.reload()}};
   render();
 }
-function loadMonth(){
-  const d = getMonthData();
-  $("salary").value = d.salary || "";
-  $("bonus").value = d.bonus || "";
-  $("savingGoal").value = d.savingGoal || "";
-  render();
+
+function showView(id){
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));
+  document.querySelectorAll(".nav").forEach(v=>v.classList.toggle("active",v.dataset.view===id));
+  $("pageTitle").textContent={dashboard:"Vue d’ensemble",transactions:"Transactions",budgets:"Budgets",goals:"Objectifs",reports:"Rapports"}[id];
 }
+
+function totals(d){
+  const income=num(d.salary)+num(d.bonus),expenses=d.expenses.reduce((s,e)=>s+num(e.amount),0);
+  return{income,expenses,remaining:income-expenses,saving:Math.max(0,income-expenses)};
+}
+
 function render(){
-  const d = getMonthData();
-  const income = Number(d.salary||0)+Number(d.bonus||0);
-  const expenses = d.expenses.reduce((s,e)=>s+Number(e.amount||0),0);
-  const remaining = income-expenses;
-  const savings = Math.max(0, Math.min(remaining, Number(d.savingGoal||0)));
-
-  $("salaryValue").textContent = money(income);
-  $("expensesValue").textContent = money(expenses);
-  $("remaining").textContent = money(remaining);
-  $("savingsValue").textContent = money(savings);
-  $("expenseCount").textContent = `${d.expenses.length} dépense${d.expenses.length>1?"s":""}`;
-
-  $("expenseList").innerHTML = d.expenses.length ? d.expenses.map((e,i)=>`
-    <div class="expense-item">
-      <div class="expense-meta"><strong>${escapeHtml(e.name)}</strong><small>${escapeHtml(e.category)}</small></div>
-      <div><span class="amount">${money(e.amount)}</span> <button class="delete" onclick="removeExpense(${i})">×</button></div>
-    </div>`).join("") : '<div class="empty">Aucune dépense enregistrée</div>';
-
-  const months = Object.keys(state.months).sort().reverse();
-  $("history").innerHTML = months.length ? months.map(m=>{
-    const x=state.months[m];
-    const inc=Number(x.salary||0)+Number(x.bonus||0);
-    const exp=x.expenses.reduce((s,e)=>s+Number(e.amount||0),0);
-    return `<div class="history-item"><div><strong>${formatMonth(m)}</strong><small>${x.expenses.length} dépense(s)</small></div><div class="amount">${money(inc-exp)}</div></div>`;
-  }).join("") : '<div class="empty">Aucun historique</div>';
-}
-function escapeHtml(s=""){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-function formatMonth(m){return new Date(m+"-01T12:00:00").toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}
-window.removeExpense=i=>{getMonthData().expenses.splice(i,1);save()};
-
-$("month").addEventListener("change",loadMonth);
-$("saveMonth").addEventListener("click",()=>{
-  const d=getMonthData();
-  d.salary=Number($("salary").value||0);
-  d.bonus=Number($("bonus").value||0);
-  d.savingGoal=Number($("savingGoal").value||0);
-  save();
-});
-$("addExpense").addEventListener("click",()=>{
-  const name=$("expenseName").value.trim();
-  const amount=Number($("expenseAmount").value||0);
-  if(!name || amount<=0){alert("Ajoute un nom et un montant valide.");return}
-  getMonthData().expenses.push({name,category:$("expenseCategory").value,amount});
-  $("expenseName").value=""; $("expenseAmount").value="";
-  save();
-});
-$("resetBtn").addEventListener("click",()=>{
-  if(confirm("Supprimer toutes les données ?")){
-    localStorage.removeItem(KEY); location.reload();
-  }
-});
-
-function generatePDFReport(){
-  const monthKey = $("month").value || currentMonth;
-  const d = getMonthData();
-  const income = Number(d.salary||0) + Number(d.bonus||0);
-  const expenses = d.expenses.reduce((s,e)=>s+Number(e.amount||0),0);
-  const remaining = income-expenses;
-  const savingGoal = Number(d.savingGoal||0);
-  const progress = savingGoal > 0 ? Math.max(0, Math.min(100, (Math.max(0,remaining)/savingGoal)*100)) : 0;
-
-  const byCategory = {};
-  d.expenses.forEach(e => byCategory[e.category] = (byCategory[e.category]||0) + Number(e.amount||0));
-  const categories = Object.entries(byCategory).sort((a,b)=>b[1]-a[1]);
-
-  const expenseRows = d.expenses.length
-    ? d.expenses.map((e,i)=>`
-      <tr>
-        <td>${String(i+1).padStart(2,"0")}</td>
-        <td><strong>${escapeHtml(e.name)}</strong></td>
-        <td><span class="tag">${escapeHtml(e.category)}</span></td>
-        <td class="num">${money(e.amount)}</td>
-      </tr>`).join("")
-    : `<tr><td colspan="4" class="empty-row">Aucune dépense enregistrée pour ce mois.</td></tr>`;
-
-  const categoryRows = categories.length
-    ? categories.map(([cat,val])=>{
-        const pct = expenses > 0 ? Math.round((val/expenses)*100) : 0;
-        return `<div class="cat-row">
-          <div class="cat-line"><span>${escapeHtml(cat)}</span><strong>${money(val)} · ${pct}%</strong></div>
-          <div class="bar"><i style="width:${pct}%"></i></div>
-        </div>`;
-      }).join("")
-    : `<p class="muted">Aucune catégorie disponible.</p>`;
-
-  const generated = new Date().toLocaleString("fr-FR", {dateStyle:"long", timeStyle:"short"});
-  const report = `<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rapport ${formatMonth(monthKey)} - Imrane Asrir</title>
-<style>
-  @page{size:A4;margin:0}
-  *{box-sizing:border-box}
-  body{margin:0;background:#e9edf5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#111827}
-  .page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;position:relative;overflow:hidden}
-  .cover{height:72mm;padding:17mm 16mm 12mm;color:white;background:
-    radial-gradient(circle at 85% 10%,rgba(96,165,250,.45),transparent 34%),
-    radial-gradient(circle at 15% 100%,rgba(139,92,246,.45),transparent 34%),
-    linear-gradient(135deg,#0f172a,#172554 55%,#312e81)}
-  .brand{display:flex;align-items:center;gap:11px}
-  .logo{width:15mm;height:15mm;border-radius:5mm;display:grid;place-items:center;
-    background:linear-gradient(135deg,#60a5fa,#8b5cf6);font-size:20px;font-weight:900;
-    box-shadow:0 8px 24px rgba(0,0,0,.22)}
-  .brand-name{font-weight:800;font-size:16px;letter-spacing:.02em}
-  .brand-sub{font-size:10px;opacity:.72;margin-top:2px;text-transform:uppercase;letter-spacing:.16em}
-  .cover-content{display:flex;justify-content:space-between;align-items:flex-end;margin-top:15mm}
-  .cover h1{font-size:29px;line-height:1.05;margin:0 0 4px}
-  .cover p{margin:0;opacity:.78;font-size:12px}
-  .month-badge{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
-    padding:9px 13px;border-radius:10px;font-size:12px;font-weight:700;backdrop-filter:blur(8px)}
-  .content{padding:11mm 16mm 18mm}
-  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-top:-20mm}
-  .card{background:white;border-radius:5mm;padding:6mm;box-shadow:0 10px 30px rgba(15,23,42,.12);border:1px solid #eef2f7}
-  .card .label{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#64748b}
-  .card .value{font-size:18px;font-weight:850;margin-top:3mm;color:#0f172a}
-  .card.blue{border-top:3px solid #2563eb}.card.violet{border-top:3px solid #7c3aed}.card.green{border-top:3px solid #059669}
-  .section{margin-top:9mm}
-  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4mm}
-  h2{font-size:15px;margin:0;color:#0f172a}
-  .small{font-size:9px;color:#94a3b8}
-  .goal{background:linear-gradient(135deg,#f8fafc,#eef2ff);border:1px solid #e0e7ff;border-radius:4mm;padding:5mm}
-  .goal-top{display:flex;justify-content:space-between;align-items:center}
-  .goal strong{font-size:13px}.goal span{font-size:10px;color:#64748b}
-  .progress{height:3mm;border-radius:99px;background:#dbeafe;margin-top:4mm;overflow:hidden}
-  .progress i{height:100%;display:block;background:linear-gradient(90deg,#2563eb,#7c3aed);border-radius:99px}
-  .grid-2{display:grid;grid-template-columns:1.3fr .7fr;gap:6mm}
-  table{width:100%;border-collapse:collapse;font-size:9px}
-  th{text-align:left;padding:3mm 2.5mm;background:#f8fafc;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-size:8px}
-  td{padding:3mm 2.5mm;border-bottom:1px solid #eef2f7}
-  .num{text-align:right;font-weight:750}
-  .tag{padding:1.2mm 2mm;border-radius:99px;background:#eef2ff;color:#4338ca;font-size:8px;font-weight:700}
-  .empty-row{text-align:center;color:#94a3b8;padding:8mm}
-  .cat-box{border:1px solid #eef2f7;border-radius:4mm;padding:5mm}
-  .cat-row{margin-bottom:4mm}.cat-row:last-child{margin-bottom:0}
-  .cat-line{display:flex;justify-content:space-between;font-size:9px;margin-bottom:1.5mm}
-  .cat-line strong{font-size:8px;color:#64748b}
-  .bar{height:2mm;background:#eef2f7;border-radius:99px;overflow:hidden}
-  .bar i{height:100%;display:block;background:linear-gradient(90deg,#60a5fa,#7c3aed);border-radius:99px}
-  .footer{position:absolute;bottom:8mm;left:16mm;right:16mm;display:flex;justify-content:space-between;
-    border-top:1px solid #eef2f7;padding-top:3mm;font-size:8px;color:#94a3b8}
-  .muted{color:#94a3b8;font-size:9px}
-  .negative{color:#dc2626!important}
-  @media print{
-    body{background:white}
-    .page{margin:0;box-shadow:none}
-  }
-</style>
-</head>
-<body>
-<div class="page">
-  <header class="cover">
-    <div class="brand">
-      <div class="logo">IA</div>
-      <div><div class="brand-name">Imrane Asrir</div><div class="brand-sub">Personal Finance</div></div>
-    </div>
-    <div class="cover-content">
-      <div><h1>Rapport financier<br>mensuel</h1><p>Une vue claire de vos revenus, dépenses et objectifs.</p></div>
-      <div class="month-badge">${formatMonth(monthKey)}</div>
-    </div>
-  </header>
-
-  <main class="content">
-    <div class="cards">
-      <div class="card blue"><div class="label">Revenus</div><div class="value">${money(income)}</div></div>
-      <div class="card violet"><div class="label">Dépenses</div><div class="value">${money(expenses)}</div></div>
-      <div class="card green"><div class="label">Reste disponible</div><div class="value ${remaining<0?"negative":""}">${money(remaining)}</div></div>
-    </div>
-
-    <section class="section">
-      <div class="section-head"><h2>Objectif d’épargne</h2><span class="small">${Math.round(progress)}% atteint</span></div>
-      <div class="goal">
-        <div class="goal-top"><strong>${money(Math.max(0,remaining))} disponibles</strong><span>Objectif : ${money(savingGoal)}</span></div>
-        <div class="progress"><i style="width:${progress}%"></i></div>
-      </div>
-    </section>
-
-    <section class="section grid-2">
-      <div>
-        <div class="section-head"><h2>Détail des dépenses</h2><span class="small">${d.expenses.length} opération(s)</span></div>
-        <table>
-          <thead><tr><th>#</th><th>Description</th><th>Catégorie</th><th class="num">Montant</th></tr></thead>
-          <tbody>${expenseRows}</tbody>
-        </table>
-      </div>
-      <div>
-        <div class="section-head"><h2>Répartition</h2></div>
-        <div class="cat-box">${categoryRows}</div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <span>Rapport privé - Imrane Asrir</span>
-    <span>Généré le ${generated}</span>
-  </footer>
-</div>
-<script>
-  window.onload=()=>setTimeout(()=>window.print(),350);
-</script>
-</body>
-</html>`;
-
-  const w = window.open("", "_blank");
-  if(!w){ alert("Autorise les fenêtres surgissantes pour générer le PDF."); return; }
-  w.document.open();
-  w.document.write(report);
-  w.document.close();
+  const d=monthData(),t=totals(d),rate=t.income?Math.round(t.saving/t.income*100):0;
+  const score=Math.max(0,Math.min(100,Math.round(45+rate*.7-(t.remaining<0?35:0))));
+  $("remaining").textContent=money(t.remaining);
+  $("incomeValue").textContent=money(t.income);
+  $("expensesValue").textContent=money(t.expenses);
+  $("savingsValue").textContent=money(t.saving);
+  $("budgetRemaining").textContent=money(num(d.budget)-t.expenses);
+  $("expenseNote").textContent=`${d.expenses.length} transaction${d.expenses.length>1?"s":""}`;
+  $("savingRate").textContent=`${rate}% des revenus`;
+  $("budgetNote").textContent=d.budget?`Budget ${money(d.budget)}`:"Non défini";
+  $("insight").textContent=t.income?(t.remaining>=0?`Tu conserves ${rate}% de tes revenus ce mois-ci.`:"Attention, tes dépenses dépassent tes revenus."):"Configure tes revenus pour commencer.";
+  $("score").textContent=score;
+  document.querySelector(".score").style.setProperty("--score",score+"%");
+  renderChart();renderCategories();renderTransactions();renderGoal();renderBudgets();renderGoals();
 }
 
-$("exportBtn").addEventListener("click", generatePDFReport);
-$("pdfBtn").addEventListener("click", generatePDFReport);
+function renderChart(){
+  let ks=Object.keys(state.months).sort().slice(-6);if(!ks.length)ks=[current];
+  let max=1;ks.forEach(k=>{const t=totals(monthData(k));max=Math.max(max,t.income,t.expenses)});
+  $("cashflow").innerHTML=ks.map(k=>{const t=totals(monthData(k));return `<div class="bar-col"><div class="bar-pair"><i class="bar in" style="height:${t.income/max*100}%"></i><i class="bar out" style="height:${t.expenses/max*100}%"></i></div><small>${labelMonth(k)}</small></div>`}).join("");
+}
 
-if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
-loadMonth();
+function categoryTotals(){
+  const o={};monthData().expenses.forEach(e=>o[e.category]=(o[e.category]||0)+num(e.amount));
+  return Object.entries(o).sort((a,b)=>b[1]-a[1]);
+}
+
+function renderCategories(){
+  const arr=categoryTotals(),total=arr.reduce((s,x)=>s+x[1],0);
+  if(!total){$("categoryChart").innerHTML='<div class="empty">Aucune dépense</div>';return}
+  const colors=["#6d5dfc","#23b5d3","#39d98a","#ffb84d","#ff6b7a","#9a79ff","#4dd0a5"];
+  let angle=0,parts=[];
+  arr.forEach(([c,v],i)=>{const a=v/total*360;parts.push(`${colors[i%colors.length]} ${angle}deg ${angle+a}deg`);angle+=a});
+  $("categoryChart").innerHTML=`<div class="donut" style="background:conic-gradient(${parts.join(",")})"></div><div class="legend-list">${arr.slice(0,6).map(([c,v])=>`<div class="legend-row"><span>${icons[c]||"•"} ${c}</span><b>${money(v)}</b></div>`).join("")}</div>`;
+}
+
+function transactionHTML(e,i){return `<div class="tx"><div class="tx-icon">${icons[e.category]||"•"}</div><div class="tx-main"><b>${esc(e.name)}</b><small>${esc(e.category)} · ${e.date||""}${e.note?" · "+esc(e.note):""}</small></div><div class="tx-amount">−${money(e.amount)}</div><button class="delete" onclick="removeExpense(${i})">×</button></div>`}
+
+function renderTransactions(){
+  const d=monthData(),q=($("search").value||"").toLowerCase(),f=$("filter").value||"";
+  const list=d.expenses.map((e,i)=>({...e,_i:i})).filter(e=>(!q||e.name.toLowerCase().includes(q))&&(!f||e.category===f)).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  $("transactionsList").innerHTML=list.length?list.map(e=>transactionHTML(e,e._i)).join(""):'<div class="empty">Aucune transaction</div>';
+  $("recent").innerHTML=list.length?list.slice(0,5).map(e=>transactionHTML(e,e._i)).join(""):'<div class="empty">Ajoute ta première dépense</div>';
+}
+window.removeExpense=i=>{monthData().expenses.splice(i,1);persist()};
+
+function loadIncome(){const d=monthData();$("salary").value=d.salary||"";$("bonus").value=d.bonus||"";$("savingGoal").value=d.savingGoal||"";$("monthlyBudget").value=d.budget||""}
+function saveIncome(){const d=monthData();d.salary=num($("salary").value);d.bonus=num($("bonus").value);d.savingGoal=num($("savingGoal").value);d.budget=num($("monthlyBudget").value);$("incomeModal").close();persist()}
+
+function saveExpense(){
+  const name=$("expenseName").value.trim(),amount=num($("expenseAmount").value);
+  if(!name||amount<=0)return alert("Nom et montant obligatoires.");
+  monthData().expenses.push({name,amount,category:$("expenseCategory").value,date:$("expenseDate").value,type:$("expenseType").value,note:$("expenseNote").value.trim()});
+  $("expenseName").value="";$("expenseAmount").value="";$("expenseNote").value="";
+  $("expenseModal").close();persist();
+}
+
+function renderGoal(){
+  const d=monthData(),t=totals(d),goal=num(d.savingGoal),pct=goal?Math.min(100,Math.round(t.saving/goal*100)):0;
+  $("monthlyGoal").innerHTML=`<div class="goal-box"><b>${money(t.saving)}</b><p>sur un objectif de ${money(goal)}</p><div class="progress"><i style="width:${pct}%"></i></div><p>${pct}% atteint</p></div>`;
+}
+
+function renderBudgets(){
+  const d=monthData(),spent=Object.fromEntries(categoryTotals());
+  $("budgetsList").innerHTML=CATS.map(c=>{const budget=num(d.categoryBudgets[c]),used=num(spent[c]),pct=budget?Math.min(100,Math.round(used/budget*100)):0;return `<div class="budget-row"><div class="budget-top"><b>${icons[c]} ${c}</b><span>${money(used)} / <input class="budget-input" type="number" value="${budget||""}" placeholder="Budget" onchange="setBudget('${c}',this.value)"></span></div><div class="progress"><i style="width:${pct}%"></i></div></div>`}).join("");
+}
+window.setBudget=(c,v)=>{monthData().categoryBudgets[c]=num(v);persist()};
+
+function addGoal(){
+  const name=$("goalName").value.trim(),target=num($("goalTarget").value),currentValue=num($("goalCurrent").value);
+  if(!name||target<=0)return alert("Nom et cible obligatoires.");
+  state.goals.push({name,target,current:currentValue});
+  $("goalName").value="";$("goalTarget").value="";$("goalCurrent").value="";persist();
+}
+
+function renderGoals(){
+  $("goalsList").innerHTML=state.goals.length?state.goals.map((g,i)=>{const pct=Math.min(100,Math.round(num(g.current)/num(g.target)*100));return `<div class="goal-row"><div class="goal-top"><b>${esc(g.name)}</b><button class="delete" onclick="removeGoal(${i})">×</button></div><p>${money(g.current)} sur ${money(g.target)} · ${pct}%</p><div class="progress"><i style="width:${pct}%"></i></div></div>`}).join(""):'<div class="empty">Aucun objectif enregistré</div>';
+}
+window.removeGoal=i=>{state.goals.splice(i,1);persist()};
+
+function backup(){
+  const a=document.createElement("a"),blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  a.href=URL.createObjectURL(blob);a.download="imrane-finance-backup.json";a.click();URL.revokeObjectURL(a.href);
+}
+
+function generatePDF(){
+  const d=monthData(),t=totals(d);
+  const rows=d.expenses.map(e=>`<tr><td>${esc(e.name)}</td><td>${esc(e.category)}</td><td>${e.date||""}</td><td>${money(e.amount)}</td></tr>`).join("")||'<tr><td colspan="4">Aucune dépense</td></tr>';
+  const html=`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Rapport Imrane Finance</title><style>@page{size:A4;margin:0}body{margin:0;font-family:Arial;color:#14213d}.cover{padding:55px;color:white;background:linear-gradient(135deg,#07111f,#312e81)}.logo{font-size:30px;font-weight:900}.content{padding:40px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:-55px}.card{background:white;padding:22px;border-radius:18px;box-shadow:0 10px 35px #0002}.card span{color:#64748b;font-size:12px}.card b{display:block;font-size:21px;margin-top:8px}table{width:100%;border-collapse:collapse;margin-top:25px}th,td{text-align:left;padding:12px;border-bottom:1px solid #e5e7eb}th{background:#f4f6fb}.footer{margin-top:30px;color:#64748b;font-size:11px}</style></head><body><div class="cover"><div class="logo">IF · Imrane Finance</div><h1>Rapport financier mensuel</h1><p>${$("month").options[$("month").selectedIndex].text}</p></div><div class="content"><div class="cards"><div class="card"><span>Revenus</span><b>${money(t.income)}</b></div><div class="card"><span>Dépenses</span><b>${money(t.expenses)}</b></div><div class="card"><span>Solde</span><b>${money(t.remaining)}</b></div></div><h2>Détail des transactions</h2><table><thead><tr><th>Description</th><th>Catégorie</th><th>Date</th><th>Montant</th></tr></thead><tbody>${rows}</tbody></table><div class="footer">Document privé généré par Imrane Finance · ${new Date().toLocaleString("fr-FR")}</div></div><script>onload=()=>setTimeout(()=>print(),300)</script></body></html>`;
+  const w=open("","_blank");if(!w)return alert("Autorise les fenêtres surgissantes.");w.document.write(html);w.document.close();
+}
+setup();

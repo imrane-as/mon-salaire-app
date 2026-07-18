@@ -1,101 +1,187 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="midnight">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0f172a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Mon Salaire" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icon.svg" />
-  <link rel="stylesheet" href="styles.css" />
-  <title>Mon Salaire</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07111f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <title>Imrane Finance</title>
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">Gestion personnelle</p>
-      <h1>Mon Salaire</h1>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <div class="logo">IF</div>
+      <div><b>Imrane Finance</b><small>Personal wealth cockpit</small></div>
     </div>
-    <button id="exportBtn" class="export-top">Exporter PDF</button>
-  </header>
+    <nav>
+      <button class="nav active" data-view="dashboard">◈ Dashboard</button>
+      <button class="nav" data-view="transactions">↕ Transactions</button>
+      <button class="nav" data-view="budgets">◎ Budgets</button>
+      <button class="nav" data-view="goals">◇ Objectifs</button>
+      <button class="nav" data-view="reports">▤ Rapports</button>
+    </nav>
+    <div class="aside-foot">
+      <small>Données privées sur cet appareil</small>
+      <button id="resetBtn">Réinitialiser</button>
+    </div>
+  </aside>
 
-  <main>
-    <section class="card hero">
+  <div class="workspace">
+    <header>
       <div>
-        <p>Reste disponible</p>
-        <h2 id="remaining">0,00 €</h2>
+        <p class="eyebrow">BIENVENUE, IMRANE</p>
+        <h1 id="pageTitle">Vue d’ensemble</h1>
       </div>
-      <div class="hero-grid">
-        <div><span>Salaire net</span><strong id="salaryValue">0,00 €</strong></div>
-        <div><span>Dépenses</span><strong id="expensesValue">0,00 €</strong></div>
-        <div><span>Épargne</span><strong id="savingsValue">0,00 €</strong></div>
+      <div class="actions">
+        <select id="month"></select>
+        <button id="themeBtn" class="icon">◐</button>
+        <button id="exportBtn" class="btn ghost">Exporter PDF</button>
+        <button id="openExpense" class="btn primary">+ Dépense</button>
       </div>
-    </section>
+    </header>
 
-    <section class="card">
-      <h3>Ce mois-ci</h3>
-      <div class="form-grid">
-        <label>Mois
-          <input id="month" type="month" />
-        </label>
-        <label>Salaire net reçu
-          <input id="salary" type="number" inputmode="decimal" placeholder="3200" />
-        </label>
-        <label>Prime / avantage
-          <input id="bonus" type="number" inputmode="decimal" placeholder="0" />
-        </label>
-        <label>Objectif d’épargne
-          <input id="savingGoal" type="number" inputmode="decimal" placeholder="1000" />
-        </label>
-      </div>
-      <button id="saveMonth" class="primary">Enregistrer le mois</button>
-      <button id="pdfBtn" class="pdf-button"><span>PDF</span> Générer le rapport Imrane Asrir</button>
-    </section>
+    <main>
+      <section id="dashboard" class="view active">
+        <div class="hero">
+          <div>
+            <span class="pill">SOLDE DISPONIBLE</span>
+            <h2 id="remaining">0,00 €</h2>
+            <p id="insight">Configure tes revenus pour commencer.</p>
+            <button id="openIncome" class="btn glass">Configurer mes revenus</button>
+          </div>
+          <div class="score">
+            <div><strong id="score">0</strong><span>Score financier</span></div>
+          </div>
+        </div>
 
-    <section class="card">
-      <div class="section-head">
-        <h3>Dépenses</h3>
-        <span id="expenseCount">0 dépense</span>
-      </div>
-      <div class="form-grid">
-        <label>Nom
-          <input id="expenseName" type="text" placeholder="Loyer" />
-        </label>
-        <label>Catégorie
-          <select id="expenseCategory">
-            <option>Loyer</option>
-            <option>Voiture</option>
-            <option>Alimentation</option>
-            <option>Abonnements</option>
-            <option>Famille</option>
-            <option>Voyages</option>
-            <option>Autre</option>
-          </select>
-        </label>
-        <label>Montant
-          <input id="expenseAmount" type="number" inputmode="decimal" placeholder="690" />
-        </label>
-      </div>
-      <button id="addExpense" class="secondary">Ajouter la dépense</button>
-      <div id="expenseList" class="list"></div>
-    </section>
+        <div class="metrics">
+          <article><span>Revenus</span><strong id="incomeValue">0,00 €</strong><small>Ce mois</small></article>
+          <article><span>Dépenses</span><strong id="expensesValue">0,00 €</strong><small id="expenseNote">0 transaction</small></article>
+          <article><span>Épargne</span><strong id="savingsValue">0,00 €</strong><small id="savingRate">0% des revenus</small></article>
+          <article><span>Budget restant</span><strong id="budgetRemaining">0,00 €</strong><small id="budgetNote">Non défini</small></article>
+        </div>
 
-    <section class="card">
-      <div class="section-head">
-        <h3>Historique</h3>
-        <button id="resetBtn" class="danger ghost">Réinitialiser</button>
-      </div>
-      <div id="history" class="history"></div>
-    </section>
-  </main>
+        <div class="grid">
+          <section class="panel wide">
+            <div class="head"><div><p class="eyebrow">ANALYSE</p><h3>Flux des 6 derniers mois</h3></div></div>
+            <div id="cashflow" class="bars"></div>
+          </section>
+          <section class="panel">
+            <div class="head"><div><p class="eyebrow">RÉPARTITION</p><h3>Catégories</h3></div></div>
+            <div id="categoryChart"></div>
+          </section>
+        </div>
 
-  <nav class="bottom-nav">
-    <a href="#top">Accueil</a>
-    <a href="#history">Historique</a>
-  </nav>
+        <div class="grid">
+          <section class="panel wide">
+            <div class="head">
+              <div><p class="eyebrow">ACTIVITÉ</p><h3>Dernières transactions</h3></div>
+              <button class="link" data-view-link="transactions">Tout voir</button>
+            </div>
+            <div id="recent"></div>
+          </section>
+          <section class="panel">
+            <div class="head"><div><p class="eyebrow">OBJECTIF</p><h3>Épargne mensuelle</h3></div></div>
+            <div id="monthlyGoal"></div>
+          </section>
+        </div>
+      </section>
 
-  <script src="app.js"></script>
+      <section id="transactions" class="view">
+        <div class="title">
+          <div><p class="eyebrow">GESTION</p><h2>Transactions</h2></div>
+          <button id="openExpense2" class="btn primary">+ Ajouter</button>
+        </div>
+        <section class="panel">
+          <div class="toolbar">
+            <input id="search" placeholder="Rechercher…">
+            <select id="filter"><option value="">Toutes les catégories</option></select>
+          </div>
+          <div id="transactionsList"></div>
+        </section>
+      </section>
+
+      <section id="budgets" class="view">
+        <div class="title"><div><p class="eyebrow">PLANIFICATION</p><h2>Budgets par catégorie</h2></div></div>
+        <section class="panel"><div id="budgetsList" class="budget-list"></div></section>
+      </section>
+
+      <section id="goals" class="view">
+        <div class="title"><div><p class="eyebrow">PROGRESSION</p><h2>Objectifs financiers</h2></div></div>
+        <section class="panel">
+          <div class="form-grid">
+            <label>Nom<input id="goalName" placeholder="Fonds de sécurité"></label>
+            <label>Montant cible<input id="goalTarget" type="number" placeholder="10000"></label>
+            <label>Montant actuel<input id="goalCurrent" type="number" placeholder="2500"></label>
+            <button id="saveGoal" class="btn primary end">Enregistrer</button>
+          </div>
+          <div id="goalsList" class="goal-list"></div>
+        </section>
+      </section>
+
+      <section id="reports" class="view">
+        <div class="title"><div><p class="eyebrow">DOCUMENTS</p><h2>Rapports & sauvegarde</h2></div></div>
+        <div class="report-grid">
+          <article class="report">
+            <span>PDF</span><h3>Rapport premium</h3>
+            <p>Revenus, dépenses, score, catégories et transactions.</p>
+            <button id="pdfBtn" class="btn primary">Générer le PDF</button>
+          </article>
+          <article class="report">
+            <span>JSON</span><h3>Sauvegarde complète</h3>
+            <p>Télécharge toutes tes données personnelles.</p>
+            <button id="backupBtn" class="btn ghost">Télécharger</button>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<dialog id="expenseModal">
+  <form method="dialog" class="modal">
+    <div class="head">
+      <div><p class="eyebrow">NOUVELLE OPÉRATION</p><h3>Ajouter une dépense</h3></div>
+      <button class="icon">×</button>
+    </div>
+    <div class="form-grid">
+      <label>Nom<input id="expenseName" placeholder="Loyer"></label>
+      <label>Catégorie<select id="expenseCategory"></select></label>
+      <label>Montant<input id="expenseAmount" type="number" placeholder="690"></label>
+      <label>Date<input id="expenseDate" type="date"></label>
+      <label>Type<select id="expenseType"><option value="variable">Variable</option><option value="fixed">Fixe</option></select></label>
+      <label>Note<input id="expenseNote" placeholder="Optionnel"></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost">Annuler</button>
+      <button type="button" id="addExpense" class="btn primary">Ajouter</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="incomeModal">
+  <form method="dialog" class="modal">
+    <div class="head">
+      <div><p class="eyebrow">REVENUS</p><h3>Configuration du mois</h3></div>
+      <button class="icon">×</button>
+    </div>
+    <div class="form-grid">
+      <label>Salaire net<input id="salary" type="number" placeholder="3200"></label>
+      <label>Prime / avantages<input id="bonus" type="number" placeholder="0"></label>
+      <label>Objectif d’épargne<input id="savingGoal" type="number" placeholder="1000"></label>
+      <label>Budget total<input id="monthlyBudget" type="number" placeholder="2200"></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost">Annuler</button>
+      <button type="button" id="saveMonth" class="btn primary">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
 {
-  "name": "Mon Salaire",
-  "short_name": "Salaire",
+  "name": "Imrane Finance",
+  "short_name": "Finance",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f1f5f9",
-  "theme_color": "#0f172a",
+  "background_color": "#07111f",
+  "theme_color": "#07111f",
   "icons": [
     {
       "src": "icon.svg",
