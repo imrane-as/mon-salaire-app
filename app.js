@@ -219,9 +219,11 @@ function setupSplashScreen() {
     }
   }
 
-  skipButton?.addEventListener("click", closeSplash);
+  skipButton.addEventListener("click", closeSplash);
 
   setTimeout(runStep, 400);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   setup();
   setupSplashScreen();
