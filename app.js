@@ -109,12 +109,50 @@ window.removeExpense=i=>{monthData().expenses.splice(i,1);persist()};
 function loadIncome(){const d=monthData();$("salary").value=d.salary||"";$("bonus").value=d.bonus||"";$("savingGoal").value=d.savingGoal||"";$("monthlyBudget").value=d.budget||""}
 function saveIncome(){const d=monthData();d.salary=num($("salary").value);d.bonus=num($("bonus").value);d.savingGoal=num($("savingGoal").value);d.budget=num($("monthlyBudget").value);$("incomeModal").close();persist()}
 
-function saveExpense(){
-  const name=$("expenseName").value.trim(),amount=num($("expenseAmount").value);
-  if(!name||amount<=0)return alert("Nom et montant obligatoires.");
-  monthData().expenses.push({name,amount,category:$("expenseCategory").value,date:$("expenseDate").value,type:$("expenseType").value,note:$("expenseNote").value.trim()});
-  $("expenseName").value="";$("expenseAmount").value="";$("expenseNote").value="";
-  $("expenseModal").close();persist();
+function saveExpense() {
+  const name = $("expenseName").value.trim();
+  const amount = num($("expenseAmount").value);
+  const category = $("expenseCategory").value;
+  const date = $("expenseDate").value;
+  const type = $("expenseType").value;
+  const note = $("expenseNoteInput").value.trim();
+
+  if (!name) {
+    alert("Le nom de la dépense est obligatoire.");
+    $("expenseName").focus();
+    return;
+  }
+
+  if (amount <= 0) {
+    alert("Le montant doit être supérieur à 0.");
+    $("expenseAmount").focus();
+    return;
+  }
+
+  const data = monthData();
+
+  if (!Array.isArray(data.expenses)) {
+    data.expenses = [];
+  }
+
+  data.expenses.push({
+    id: Date.now(),
+    name,
+    amount,
+    category,
+    date,
+    type,
+    note
+  });
+
+  $("expenseName").value = "";
+  $("expenseAmount").value = "";
+  $("expenseNoteInput").value = "";
+  $("expenseDate").value = new Date().toISOString().slice(0, 10);
+  $("expenseType").value = "variable";
+
+  $("expenseModal").close();
+  persist();
 }
 
 function renderGoal(){
