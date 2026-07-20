@@ -182,12 +182,496 @@ function backup(){
   const a=document.createElement("a"),blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
   a.href=URL.createObjectURL(blob);a.download="imrane-finance-backup.json";a.click();URL.revokeObjectURL(a.href);
 }
+function generatePDF() {
+  const data = monthData();
+  const total = totals(data);
 
-function generatePDF(){
-  const d=monthData(),t=totals(d);
-  const rows=d.expenses.map(e=>`<tr><td>${esc(e.name)}</td><td>${esc(e.category)}</td><td>${e.date||""}</td><td>${money(e.amount)}</td></tr>`).join("")||'<tr><td colspan="4">Aucune dépense</td></tr>';
-  const html=`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Rapport Imrane Finance</title><style>@page{size:A4;margin:0}body{margin:0;font-family:Arial;color:#14213d}.cover{padding:55px;color:white;background:linear-gradient(135deg,#07111f,#312e81)}.logo{font-size:30px;font-weight:900}.content{padding:40px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:-55px}.card{background:white;padding:22px;border-radius:18px;box-shadow:0 10px 35px #0002}.card span{color:#64748b;font-size:12px}.card b{display:block;font-size:21px;margin-top:8px}table{width:100%;border-collapse:collapse;margin-top:25px}th,td{text-align:left;padding:12px;border-bottom:1px solid #e5e7eb}th{background:#f4f6fb}.footer{margin-top:30px;color:#64748b;font-size:11px}</style></head><body><div class="cover"><div class="logo">IF · Imrane Finance</div><h1>Rapport financier mensuel</h1><p>${$("month").options[$("month").selectedIndex].text}</p></div><div class="content"><div class="cards"><div class="card"><span>Revenus</span><b>${money(t.income)}</b></div><div class="card"><span>Dépenses</span><b>${money(t.expenses)}</b></div><div class="card"><span>Solde</span><b>${money(t.remaining)}</b></div></div><h2>Détail des transactions</h2><table><thead><tr><th>Description</th><th>Catégorie</th><th>Date</th><th>Montant</th></tr></thead><tbody>${rows}</tbody></table><div class="footer">Document privé généré par Imrane Finance · ${new Date().toLocaleString("fr-FR")}</div></div><script>onload=()=>setTimeout(()=>print(),300)</script></body></html>`;
-  const w=open("","_blank");if(!w)return alert("Autorise les fenêtres surgissantes.");w.document.write(html);w.document.close();
+  const selectedMonth =
+    $("month").options[$("month").selectedIndex]?.text || "Mois sélectionné";
+
+  const savingRate =
+    total.income > 0
+      ? Math.round((total.saving / total.income) * 100)
+      : 0;
+
+  const categoryData = {};
+
+  data.expenses.forEach((expense) => {
+    const category = expense.category || "Autre";
+
+    categoryData[category] =
+      (categoryData[category] || 0) + num(expense.amount);
+  });
+
+  const categoryRows = Object.entries(categoryData)
+    .sort((a, b) => b[1] - a[1])
+    .map(
+      ([category, amount]) => `
+        <tr>
+          <td>${esc(category)}</td>
+          <td class="amount">${money(amount)}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  const transactionRows = [...data.expenses]
+    .sort((a, b) =>
+      String(b.date || "").localeCompare(String(a.date || ""))
+    )
+    .map(
+      (expense) => `
+        <tr>
+          <td>
+            <strong>${esc(expense.name || "Dépense")}</strong>
+            ${
+              expense.note
+                ? `<small>${esc(expense.note)}</small>`
+                : ""
+            }
+          </td>
+
+          <td>${esc(expense.category || "Autre")}</td>
+
+          <td>
+            ${
+              expense.date
+                ? new Date(
+                    `${expense.date}T12:00:00`
+                  ).toLocaleDateString("fr-FR")
+                : "—"
+            }
+          </td>
+
+          <td>${expense.type === "fixed" ? "Fixe" : "Variable"}</td>
+
+          <td class="amount negative">
+            −${money(expense.amount)}
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+
+  const reportHTML = `
+    <!doctype html>
+    <html lang="fr">
+      <head>
+        <meta charset="utf-8">
+
+        <title>Rapport Imrane Finance — ${esc(selectedMonth)}</title>
+
+        <style>
+          @page {
+            size: A4;
+            margin: 12mm;
+          }
+
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            margin: 0;
+            color: #14213d;
+            background: #ffffff;
+            font-family:
+              Arial,
+              Helvetica,
+              sans-serif;
+            font-size: 12px;
+            line-height: 1.5;
+          }
+
+          .page {
+            width: 100%;
+          }
+
+          .cover {
+            position: relative;
+            overflow: hidden;
+            padding: 34px;
+            border-radius: 20px;
+            color: #ffffff;
+            background:
+              radial-gradient(
+                circle at 90% 0,
+                rgba(35, 181, 211, 0.55),
+                transparent 40%
+              ),
+              linear-gradient(
+                135deg,
+                #07111f,
+                #312e81
+              );
+          }
+
+          .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+
+          .logo {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 13px;
+            background: linear-gradient(
+              135deg,
+              #6d5dfc,
+              #23b5d3
+            );
+            font-size: 16px;
+            font-weight: 900;
+          }
+
+          .brand strong {
+            display: block;
+            font-size: 16px;
+          }
+
+          .brand span {
+            color: #bfcee0;
+            font-size: 10px;
+          }
+
+          .cover h1 {
+            max-width: 520px;
+            margin: 38px 0 8px;
+            font-size: 30px;
+            line-height: 1.1;
+          }
+
+          .cover p {
+            margin: 0;
+            color: #c7d5e6;
+          }
+
+          .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 18px 0;
+          }
+
+          .card {
+            min-height: 92px;
+            padding: 15px;
+            border: 1px solid #e4e9f1;
+            border-radius: 14px;
+            background: #f8fafc;
+          }
+
+          .card span {
+            display: block;
+            margin-bottom: 9px;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+
+          .card strong {
+            display: block;
+            font-size: 18px;
+          }
+
+          .positive {
+            color: #138a5b;
+          }
+
+          .negative {
+            color: #d6455d;
+          }
+
+          .section {
+            margin-top: 22px;
+            page-break-inside: avoid;
+          }
+
+          .section-header {
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e7ebf2;
+          }
+
+          .section-header h2 {
+            margin: 0;
+            font-size: 17px;
+          }
+
+          .section-header p {
+            margin: 3px 0 0;
+            color: #64748b;
+            font-size: 10px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          th {
+            padding: 9px;
+            color: #64748b;
+            background: #f3f6fa;
+            font-size: 9px;
+            text-align: left;
+            text-transform: uppercase;
+          }
+
+          td {
+            padding: 10px 9px;
+            border-bottom: 1px solid #e7ebf2;
+            vertical-align: top;
+          }
+
+          td strong,
+          td small {
+            display: block;
+          }
+
+          td small {
+            margin-top: 3px;
+            color: #64748b;
+          }
+
+          .amount {
+            white-space: nowrap;
+            text-align: right;
+            font-weight: 700;
+          }
+
+          .empty {
+            padding: 24px;
+            border: 1px dashed #ccd5e1;
+            border-radius: 12px;
+            color: #64748b;
+            text-align: center;
+          }
+
+          .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+          }
+
+          .footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 30px;
+            padding-top: 12px;
+            border-top: 1px solid #dfe5ed;
+            color: #64748b;
+            font-size: 9px;
+          }
+
+          @media print {
+            body {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+
+            .section,
+            table,
+            tr,
+            .card {
+              break-inside: avoid;
+            }
+          }
+        </style>
+      </head>
+
+      <body>
+        <div class="page">
+          <section class="cover">
+            <div class="brand">
+              <div class="logo">IF</div>
+
+              <div>
+                <strong>Imrane Finance</strong>
+                <span>Personal wealth cockpit</span>
+              </div>
+            </div>
+
+            <h1>Rapport financier mensuel</h1>
+
+            <p>${esc(selectedMonth)}</p>
+          </section>
+
+          <section class="cards">
+            <article class="card">
+              <span>Revenus</span>
+              <strong>${money(total.income)}</strong>
+            </article>
+
+            <article class="card">
+              <span>Dépenses</span>
+              <strong class="negative">${money(total.expenses)}</strong>
+            </article>
+
+            <article class="card">
+              <span>Solde disponible</span>
+              <strong class="${
+                total.remaining >= 0 ? "positive" : "negative"
+              }">
+                ${money(total.remaining)}
+              </strong>
+            </article>
+
+            <article class="card">
+              <span>Taux d’épargne</span>
+              <strong>${savingRate} %</strong>
+            </article>
+          </section>
+
+          <div class="summary-grid">
+            <section class="section">
+              <div class="section-header">
+                <h2>Répartition par catégorie</h2>
+                <p>Dépenses enregistrées pour ce mois</p>
+              </div>
+
+              ${
+                categoryRows
+                  ? `
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Catégorie</th>
+                          <th class="amount">Montant</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        ${categoryRows}
+                      </tbody>
+                    </table>
+                  `
+                  : `
+                    <div class="empty">
+                      Aucune dépense enregistrée.
+                    </div>
+                  `
+              }
+            </section>
+
+            <section class="section">
+              <div class="section-header">
+                <h2>Planification</h2>
+                <p>Budget et objectif d’épargne</p>
+              </div>
+
+              <table>
+                <tbody>
+                  <tr>
+                    <td>Budget mensuel</td>
+                    <td class="amount">${money(data.budget)}</td>
+                  </tr>
+
+                  <tr>
+                    <td>Budget restant</td>
+                    <td class="amount">
+                      ${money(num(data.budget) - total.expenses)}
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>Objectif d’épargne</td>
+                    <td class="amount">${money(data.savingGoal)}</td>
+                  </tr>
+
+                  <tr>
+                    <td>Épargne actuelle</td>
+                    <td class="amount">${money(total.saving)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+
+          <section class="section">
+            <div class="section-header">
+              <h2>Détail des transactions</h2>
+
+              <p>
+                ${data.expenses.length} transaction${
+                  data.expenses.length > 1 ? "s" : ""
+                }
+              </p>
+            </div>
+
+            ${
+              transactionRows
+                ? `
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th>Catégorie</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th class="amount">Montant</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      ${transactionRows}
+                    </tbody>
+                  </table>
+                `
+                : `
+                  <div class="empty">
+                    Aucune transaction pour ce mois.
+                  </div>
+                `
+            }
+          </section>
+
+          <footer class="footer">
+            <span>Document privé généré par Imrane Finance</span>
+
+            <span>
+              ${new Date().toLocaleString("fr-FR")}
+            </span>
+          </footer>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const printFrame = document.createElement("iframe");
+
+  printFrame.setAttribute(
+    "style",
+    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;"
+  );
+
+  document.body.appendChild(printFrame);
+
+  const frameDocument =
+    printFrame.contentDocument || printFrame.contentWindow.document;
+
+  frameDocument.open();
+  frameDocument.write(reportHTML);
+  frameDocument.close();
+
+  setTimeout(() => {
+    try {
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+    } catch (error) {
+      console.error("Erreur pendant l’export PDF :", error);
+      alert("Impossible d’ouvrir l’impression PDF.");
+    }
+
+    setTimeout(() => {
+      printFrame.remove();
+    }, 1500);
+  }, 500);
 }
 function setupSplashScreen() {
   const splashScreen = document.getElementById("splashScreen");
